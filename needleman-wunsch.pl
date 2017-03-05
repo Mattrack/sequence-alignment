@@ -128,10 +128,3 @@ print "\n";
 my ($alA, $alB, $total) = find_alignment();
 print "$alA\n$alB\n";
 print "Score: $total\n";
-
-# my $m = $matrix[-1][-1];
-# print "Max: $m\n";
-# my $i = length($A) - 1;
-# my $j = length($B) - 1;
-# my $m1 = $matrix[$i][$j];
-# print "Test[$i][$j] = $m1\n";
