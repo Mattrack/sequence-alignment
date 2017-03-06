@@ -16,20 +16,28 @@ my $points = {
 };
 
 my @matrix = ();
+my $gaps;
 
 sub init_matrix {
 	foreach my $i (0..length($A) - 1) {
 		@{ $matrix[$i] } = ();
 		foreach my $j (0..length($B) - 1) {
 			push @{ $matrix[$i] }, 0;
+			$gaps->{$i}->{$j} = 0;
 		}
 	}
 
 	foreach my $i (0..length($A) - 1) {
 		$matrix[$i][0] = 0;
+		if ($i gt 1) {
+			$matrix[$i][0] = $matrix[$i - 1][0] + $points->{gap_extend};
+		}
 	}
 	foreach my $j (0..length($B) - 1) {
 		$matrix[0][$j] = 0;
+		if ($j gt 1) {
+			$matrix[0][$j] = $matrix[0][$j - 1] + $points->{gap_extend};
+		}
 	}
 }
 
@@ -70,12 +78,23 @@ sub fill_matrix {
 			my $S = score_at($i, $j);
 
 			my $choice1 = $matrix[$i - 1][$j - 1] + $S;
-			my $choice2 = $matrix[$i - 1][$j] + $points->{gap};
-			my $choice3 = $matrix[$i][$j - 1] + $points->{gap};
+			my $choice2 = $matrix[$i - 1][$j] + $points->{gap_open};
+			if ($gaps->{$i - 1}->{$j} == $points->{gap_open} ||
+			    $gaps->{$i - 1}->{$j} == $points->{gap_extend}) {
+				$choice2 = $matrix[$i - 1][$j] + $points->{gap_extend};
+			}
+			my $choice3 = $matrix[$i][$j - 1] + $points->{gap_open};
+			if ($gaps->{$i}->{$j - 1} == $points->{gap_open} ||
+			    $gaps->{$i}->{$j - 1} == $points->{gap_extend}) {
+				$choice3 = $matrix[$i][$j - 1] + $points->{gap_extend};
+			}
 
 			my @choices = (0, $choice1, $choice2, $choice3);
 			my $max = (sort { $a <=> $b } @choices)[-1];
 			$matrix[$i][$j] = $max;
+			if ($max == $choice2 || $max == $choice3) {
+				$gaps->{$i}->{$j} = $points->{gap};
+			}
 		}
 	}
 }
@@ -102,6 +121,7 @@ sub find_alignment {
 	my $alignmentB = "";
 	my $totalScore = 0;
 	my ($i, $j) = best_score();
+	my $prevGap = 0;
 	while ($i > 0 && $j > 0) {
 		my $score = $matrix[$i][$j];
 		my $scoreDiag = $matrix[$i - 1][$j - 1];
@@ -111,7 +131,6 @@ sub find_alignment {
 		my $cB = substr($B, $j, 1);
 		my $S = score_at($i, $j);
 
-		$totalScore += $score;
 		if ($scoreDiag <= 0 &&
 		    $scoreUp <= 0 &&
 		    $scoreLeft <= 0) {
@@ -123,18 +142,30 @@ sub find_alignment {
 			$alignmentB = $cB . $alignmentB;
 			--$i;
 			--$j;
+			$prevGap = 0;
+			$totalScore += $S;
 		}
-		elsif ($score == $scoreLeft + $points->{gap})
+		elsif ($score == $scoreLeft + $points->{gap_open} ||
+			$score == $scoreLeft + $points->{gap_extend})
 		{
 			$alignmentA = $cA . $alignmentA;
 			$alignmentB = "-" . $alignmentB;
 			--$i;
+			my $gapScore = $points->{gap_open};
+			$gapScore = $points->{gap_extend} if ($prevGap);
+			$prevGap = 1;
+			$totalScore += $gapScore;
 		}
-		elsif ($score == $scoreUp + $points->{gap})
+		elsif ($score == $scoreUp + $points->{gap_open} ||
+			$score == $scoreUp + $points->{gap_extend})
 		{
 			$alignmentA = "-" . $alignmentA;
 			$alignmentB = $cB . $alignmentB;
 			--$j;
+			my $gapScore = $points->{gap_open};
+			$gapScore = $points->{gap_extend} if ($prevGap);
+			$prevGap = 1;
+			$totalScore += $gapScore;
 		}
 	}
 	return ($alignmentA, $alignmentB, $totalScore);
