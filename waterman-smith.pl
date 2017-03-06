@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use diagnostics;
 
-my $A = "-GAATTCAGTTA";
-my $B = "-GGATCGA";
+my $A = "GAATTCAGTTA";
+my $B = "GGATCGA";
 
 my $points = {
 	match 		=> 4,
@@ -140,6 +140,8 @@ sub find_alignment {
 	return ($alignmentA, $alignmentB, $totalScore);
 }
 
+$A = "-$A";
+$B = "-$B";
 init_matrix();
 fill_matrix();
 
